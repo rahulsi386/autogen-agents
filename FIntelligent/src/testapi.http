@@ -1,0 +1,11 @@
+#GET https://financialmodelingprep.com/api/v3/sector-performance?apikey=GffONj1qtNdYuHbftPo700654KExJrf5
+
+#GET https://financialmodelingprep.com/api/v3/stock/list?apikey=GffONj1qtNdYuHbftPo700654KExJrf5 
+
+#GET https://financialmodelingprep.com/api/v3/profile/AAPL?apikey=GffONj1qtNdYuHbftPo700654KExJrf5
+#GET https://financialmodelingprep.com/api/v3/stock-screener?&apikey=GffONj1qtNdYuHbftPo700654KExJrf5&datatype=csv
+#GET https://financialmodelingprep.com/api/v3/financial-statement-full-as-reported/AAPL?period=annual&limit=50&apikey=GffONj1qtNdYuHbftPo700654KExJrf5
+GET https://financialmodelingprep.com/api/v3/key-metrics/MSFT?period=annual&apikey=GffONj1qtNdYuHbftPo700654KExJrf5
+#GET https://financialmodelingprep.com/api/v3/financial-growth/AAPL?period=annual&apikey=GffONj1qtNdYuHbftPo700654KExJrf5
+#GET https://financialmodelingprep.com/api/v3/ratios-ttm/AAPL?apikey=GffONj1qtNdYuHbftPo700654KExJrf5
+Content-Type: application/json

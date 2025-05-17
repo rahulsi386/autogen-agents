@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fintelligent"
+version = "0.1.0"
+authors = [
+  { name="Rahul Prashant Singh", email="rahulsi@microsoft.com" },
+]
+description = "A financial investment portfolio builder and executor multi-agent system."
+readme = "README.md"
+requires-python = ">=3.8" # Asyncio improvements, type hinting
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License", # Choose your license
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "aiohttp>=3.8.0",
+    "requests>=2.27.0", # Often helpful with bs4 even if fetching is async
+]
+
+[project.scripts]
+insight-extractor = "insight_extractor.main:cli_entry_point"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-asyncio>=0.18",
+    "pytest-mock>=3.7",
+    "coverage>=6.3",
+    "line_profiler>=4.0", # For profiling if needed
+]
