@@ -28,7 +28,6 @@ class ConfigurationManager:
         self.az_openai_model_name = os.getenv("AZURE_OPENAI_MODEL_NAME")
         self.az_openai_model_deployment_name = os.getenv("AZURE_OPENAI_MODEL_DEPLOYMENT_NAME")
         self.az_openai_api_version = os.getenv("AZURE_OPENAI_API_VERSION")
-        self.az_openai_reasoning_endpoint = os.getenv("AZURE_OPENAI_REASONING_ENDPOINT")
         self.az_openai_reasoning_model_name = os.getenv("AZURE_OPENAI_REASONING_MODEL_NAME")
         self.az_openai_reasoning_model_deployment_name = os.getenv("AZURE_OPENAI_REASONING_MODEL_DEPLOYMENT_NAME")
         self.alpaca_paper_trading_base_url = os.getenv("ALPACA_PAPER_TRADING_BASE_URL")
@@ -36,6 +35,8 @@ class ConfigurationManager:
         self.alpaca_secret_key = os.getenv("ALPACA_SECRET_KEY")
         self.fin_modeling_prep_base_url = os.getenv("FINANCIAL_MODELING_PREP_BASE_URL")
         self.fin_modeling_prep_api_key = os.getenv("FINANCIAL_MODELING_PREP_API_KEY")
+        self.indianapi_base_url = os.getenv("INDIANAPI_BASE_URL")
+        self.indianapi_api_key = os.getenv("INDIANAPI_API_KEY")
 
 
 class ConfigurationProvider:

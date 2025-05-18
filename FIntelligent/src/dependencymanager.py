@@ -13,13 +13,13 @@ class DependencyManager:
         self.config = config_provider.get_config()
         self._token_provider = None
         self._az_openai_client = None
+        self._az_openai_reasoning_client = None
         self._az_table_service_client = None
         self._az_table_client = None
         self._az_acs_email_client = None
         self._az_ai_foundry_project_client = None
         self._alpaca_trade_client = None
         
-
         self.logger = logging.getLogger(__name__)
         self.logger.info("Initializing DependencyManager...")
 
@@ -48,6 +48,19 @@ class DependencyManager:
         return self._az_openai_client
     
     @property
+    def az_openai_reasoning_client(self):
+        if self._az_openai_reasoning_client is None:
+            self.logger.info("Initializing Azure OpenAI Reasoning client...")
+            self._az_openai_reasoning_client = AzureOpenAIChatCompletionClient(
+                azure_deployment = self.config.az_openai_reasoning_model_deployment_name,
+                model = self.config.az_openai_reasoning_model_name,
+                api_version = self.config.az_openai_api_version,
+                azure_endpoint = self.config.az_openai_endpoint,
+                azure_ad_token_provider = self.token_provider,
+            )
+        return self._az_openai_reasoning_client
+    
+    @property
     def az_table_service_client(self):
         if self._az_table_service_client is None:
             self.logger.info("Initializing Azure Table Service client...")
@@ -69,10 +82,15 @@ class DependencyManager:
             self.az_table_service_client.create_table_if_not_exists(
                 table_name = self.config.az_storage_table_name,
             )
+            
             self.az_table_client = self.az_table_service_client.get_table_client(
                 table_name = self.config.az_storage_table_name,
             )
         return self._az_table_client
+    
+    @az_table_client.setter
+    def az_table_client(self, value):
+        self._az_table_client = value
     
     @property
     def az_acs_email_client(self):

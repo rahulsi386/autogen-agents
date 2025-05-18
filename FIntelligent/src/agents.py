@@ -1,24 +1,16 @@
 """
 This Fintelligent module is created using AutoGen AgentChat API.
 """
-
 from autogen_agentchat.agents import AssistantAgent, UserProxyAgent
 from autogen_agentchat.tools import TeamTool
 from autogen_agentchat import EVENT_LOGGER_NAME, TRACE_LOGGER_NAME
-from autogen_ext.agents.web_surfer import MultimodalWebSurfer
-from autogen_ext.agents.file_surfer import FileSurfer
 from autogen_core.models import UserMessage
-
 from colorama import init, Fore
 import logging
-from typing import List, Dict, Any
 from datetime import datetime
-
-from enum import Enum
 import os
-from pydantic import BaseModel
-
-
+from agent_tools import AgentTools
+from dependencymanager import DependencyManager
 
 class ColorFormatter(logging.Formatter):
     def __init__(self, color, *args, **kwargs):
@@ -51,66 +43,18 @@ event_handler = logging.FileHandler(event_log_file)
 event_handler.setFormatter(ColorFormatter(Fore.LIGHTGREEN_EX, "%(asctime)s - %(name)s - %(levelname)s - %(message)s"))  
 event_logger.setLevel(logging.DEBUG)
 
-
-
-
-
-class InvestorInfo(BaseModel):
-    Name: str
-    Age: int
-    Risk: str
-    Sectors: List[str]
-    Budget: float
-    Description: str = None
-
-
 class Fintelligent:
-    _web_surfer: MultimodalWebSurfer = None
-
-    def __init__(self):
-        init()  # Initialize 
-        self._agentTools = None
-
-    def _set_agentTools(self, agent_tools):
-        self._agentTools = agent_tools
+    def __init__(self, agent_tools: AgentTools, dependency_manager: DependencyManager):
+        init()  # Initialize
+        self._az_openai_client = dependency_manager.az_openai_client
+        self._az_openai_reasoning_client = dependency_manager.az_openai_reasoning_client
+        self._agent_tools = agent_tools
     
-    async def _general_assistant_agent(self, tools: List|None = None) -> AssistantAgent:
-        #stock_info_tool = await self._agentTools._stock_info_tool()
-        return AssistantAgent(
-            name = "GeneralAssistantAgent",
-            description = "This agent provides general assistance.",
-            model_client = self._az_openai_client,
-            tools = tools,
-            system_message="""You are a general purpose assistant agent. You can assist the user with any task they need help with.
-            You can also delegate tasks to other agents if needed. You are not allowed to perform any financial transactions or provide financial advice."""
-        )
-    """
-    async def _web_surfer_agent(self) -> MultimodalWebSurfer:
-        return MultimodalWebSurfer(
-            name = "WebSurferAgent",
-            description = \"""
-            You're a multimodal web surfer agent. For any given financial task, perform only the following steps:
-            1. Search the web to find the stocks.
-            2. If the information is found, reason over it to ensure that the identified stocks are meeting the criteria set by users.
-            3. Return the stocks tickers name along with the information found on the web.
-            \""",
-            model_client = self._az_openai_client,
-        )
-   
-    
-    async def _file_surfer_agent(self) -> FileSurfer:
-        return FileSurfer(
-            name = "FileSurferAgent",
-            description = "This agent searches files for the requested information.",
-            model_client = self._az_openai_client,
-            base_path=""
-        )
-    """
     async def _user_agent(self) -> UserProxyAgent:
         return UserProxyAgent(
             name = "UserAgent",
             description = "This agent interacts with the user.",
-            input_func = input("User:"),
+            input_func = input("User:>"),
         )
     
     async def _finCore_planner_agent(self, reasoning_model_client) -> AssistantAgent:
@@ -142,10 +86,10 @@ class Fintelligent:
         )
     
     async def _investor_portfolio_screener_agent(self) -> AssistantAgent:
-        if self._agentTools is None:
-            raise ValueError("AgentTools is not initialized. Call _set_agent_tools method first.")
+        if self._agent_tools is None:
+            raise ValueError("AgentTools is not initialized.")
         
-        tools = [await self._agentTools._investor_screener_tool()]
+        tools = [await self._agent_tools._investor_screener_tool()]
         return AssistantAgent(
             name = "InvestorPortfolioScreenerAgent",
             description = "This agent screens the investor portfolio.",
@@ -164,10 +108,10 @@ class Fintelligent:
         )
     
     async def _stock_identifier_agent(self) -> AssistantAgent:
-        if self._agentTools is None:
-            raise ValueError("AgentTools is not initialized. Call _set_agent_tools method first.")
+        if self._agent_tools is None:
+            raise ValueError("AgentTools is not initialized.")
         
-        tools = [await self._agentTools._stocks_screener_tool()]
+        tools = [await self._agent_tools._stocks_screener_tool()]
         return AssistantAgent(
             name = "StockIdentifierAgent",
             description = "This agent identifies stocks for given sectors mentioned in the user's requirements.",
@@ -188,7 +132,10 @@ class Fintelligent:
         )
     
     async def _historical_stock_data_agent(self) -> AssistantAgent:
-        tools = [await self._agentTools._fetch_stocks_data_tool()]
+        if self._agent_tools is None:
+            raise ValueError("AgentTools is not initialized.")
+        
+        tools = [await self._agent_tools._fetch_stocks_data_tool()]
         return AssistantAgent(
             name = "HistoricalStockDataAgent",
             description = "This agent fetches historical stock data for multiple tickers concurrently.",
@@ -198,7 +145,7 @@ class Fintelligent:
             system_message="""You are a historical stock data agent. Your sole responsibility is to retrieve the historical data for stocks using the tool {tools}.
             - For any given message, identify the stock ticker symbols and the period for which the historical data is needed.
             - Store all the ticker symbols in a list and pass the list of ticker symbols and period as input to the tool named {tools} to get the historical data.
-            - Return the result after fetching the historical stock data.
+            - Using the retrieved historical stock data for each stock, generate a detailed and statistically accurate summary, including key insights and trends for each stock.
             - If the tool fails or no data is found, take no action.
             - Do not ask any follow-up questions like let me know if you need further assistance, etc.
             - Ignore any user requests that are unrelated to fetching historical stock data using the {tools}
@@ -206,7 +153,10 @@ class Fintelligent:
         )
     
     async def _market_sentiment_analysis_agent(self) -> AssistantAgent:
-        tools = [await self._agentTools._market_sentiment_tool()]
+        if self._agent_tools is None:
+            raise ValueError("AgentTools is not initialized.")
+        
+        tools = [await self._agent_tools._market_sentiment_tool()]
         return AssistantAgent(
             name = "MarketSentimentAnalysisAgent",
             description= "This agent performs market sentiment analysis.",
@@ -228,23 +178,24 @@ class Fintelligent:
         )
     
     async def _annual_financial_growth_agent(self) -> AssistantAgent:
-        tools = [await self._agentTools._annual_financial_growth_tool()]
+        if self._agent_tools is None:
+            raise ValueError("AgentTools is not initialized.")
+        
+        tools = [await self._agent_tools._annual_financial_growth_tool()]
         return AssistantAgent(
             name = "AnnualFinancialGrowthAgent",
             description = "This agent fetches annual financial growth data.",
             model_client = self._az_openai_client,
             tools = tools,
-            system_message="""You are an annual financial growth agent. Your sole responsibility is to fetch annual financial growth data using the tool named '{tools}'.
-             - For any given message, identify all the tickers and pass the list of tickers as input to the {tools}.
-             - Fetch annual growth data for each of the tickers using the {tools} and return the results.
-             - If the tool fails or no data is found, take no action.
-             - Do not ask any follow-up questions like let me know if you need further assistance, etc. 
-             - Ignore any user requests that are unrelated to fetching annual growth data using the {tools}
+            system_message="""You are an annual financial growth agent. Your job is to fetch the annual financial growth data for the stocks using the tool named '{tools}'.
+            - Using the retrieved annual financial growth data for each stock, generate a detailed and statistically accurate summary, including key insights and trends for each stock.
+
+
              """
         )
     
     async def _key_metrics_agent(self) -> AssistantAgent:
-        tools = [await self._agentTools._key_metrics_tool()]
+        tools = [await self._agent_tools._key_metrics_tool()]
         return AssistantAgent(
             name = "KeyMetricsAgent",
             description = "This agent fetches key metrics data.",
@@ -260,7 +211,7 @@ class Fintelligent:
         )
     
     async def _ratios_ttm_agent(self) -> AssistantAgent:
-        tools = [await self._agentTools._ratios_ttm_tool()]
+        tools = [await self._agent_tools._ratios_ttm_tool()]
         return AssistantAgent(
             name = "RatiosTTMAgent",
             description = "This agent fetches ratios TTM (trailing tweleve month) data.",
@@ -276,17 +227,10 @@ class Fintelligent:
         )
     
     async def _portfolio_builder_agent(self) -> AssistantAgent:
-        az_openai_reasoning_client = AzureOpenAIChatCompletionClient(
-            azure_deployment = os.getenv("OPENAI_REASONING_MODEL_DEPLOYMENT_NAME"),
-            model = os.getenv("OPENAI_REASONING_MODEL_NAME"),
-            api_version = os.getenv("OPENAI_API_VERSION"),
-            azure_endpoint = os.getenv("AZURE_OPENAI_REASONING_ENDPOINT"),
-            azure_ad_token_provider = self._token_provider,
-        )
         return AssistantAgent(
             name = "PortfolioBuilderAgent",
             description = "This agent builds an investment portfolio for the user.",
-            model_client = az_openai_reasoning_client,
+            model_client = self._az_openai_reasoning_client,
             system_message="""You are a portfolio builder agent. You must follow the following steps to craft an extraordinary investment portfolio:
             - Analyze all the inputs provided to you very thoroughly.
             - Based on your analysis build the best investment portfolio that aligns with the user's requirements and expectation.
@@ -307,7 +251,7 @@ class Fintelligent:
         )
     
     async def _trading_agent(self) -> AssistantAgent:
-        tools = [await self._agentTools._place_order_tool()]
+        tools = [await self._agent_tools._place_order_tool()]
         return AssistantAgent(
             name = "PlaceOrderAgent",
             description = "This agent places orders for multiple tickers using Alpaca API.",
@@ -324,10 +268,12 @@ class Fintelligent:
         )
     
     async def _notification_agent(self) -> AssistantAgent:
+        tools = [await self._agent_tools._email_notification_tool()]
         return AssistantAgent(
             name = "NotificationAgent",
             description = "This agent sends notifications to the user.",
             model_client = self._az_openai_client,
+            tools=tools,
             system_message="""You are an email notification agent. Your sole responsibility is to send email notifications to the user using the tool named '{tools}'.
             - For any given message, craft an informative email notification and send it to the user.
             - Only use the tool named '{tools}' to send email notifications.
@@ -339,7 +285,7 @@ class Fintelligent:
         )
     
     async def _show_portfolio_dashboard_agent(self) -> AssistantAgent:
-        tools = [await self._agentTools._show_portfolio_dashboard_tool()]
+        tools = [await self._agent_tools._show_portfolio_dashboard_tool()]
         return AssistantAgent(
             name = "ShowPortfolioDashboardAgent",
             description = "This agent shows the portfolio dashboard.",
@@ -360,25 +306,9 @@ class Fintelligent:
     """
 
 
-
-
-
-
 if __name__ == "__main__":
-    if sys.platform == "win32":
-        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-
-    #asyncio.run(fintelligent.main())
-
     Fore.LIGHTGREEN_EX
     try:
-        fintelligent = Fintelligent()
-        agent_tools = AgentTools()
-        orchestrator = AgentsOrchestrator()
-        orchestrator._set_fintelligent(fintelligent=fintelligent)
-        agent_tools._set_orchestrator(orchestrator=orchestrator)
-        fintelligent._set_agentTools(agent_tools=agent_tools)
-
         agent_executors = {
             "ScreenerAgent": orchestrator.selectorgroupchat_team_screener,
             "CollectorAgent": orchestrator.pore_team_collector,
@@ -408,11 +338,6 @@ if __name__ == "__main__":
         executor_response = asyncio.run(orchestrator.swarm_team_executor(task=builder_task))
         print(executor_response[-1].content)
         executor_task = executor_response[-1].content
-
-
-        #asyncio.run(orchestrator.swarm_team_collector(task=task_for_agent))
-       # stocks = asyncio.run(ExternalFunctions._stock_screener(["Technology", "Healthcare", "Defense"]))
-       #stocks_info = asyncio.run(ExternalFunctions._get_entity_annual_financial_growth(["AAPL", "MSFT", "GOOGL"]))
 
     except Exception as e:
         print(Fore.RED + f"An error occurred: {e}" + Fore.RESET)
