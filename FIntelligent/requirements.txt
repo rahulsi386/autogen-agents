@@ -1,0 +1,5 @@
+pip install aiohttp beautifulsoup4 requests # requests is often useful alongside bs4
+# For testing later: pip install pytest pytest-asyncio pytest-mock
+pip install yfinance
+pip install markitdown[all]
+pip install azure-communication-email
